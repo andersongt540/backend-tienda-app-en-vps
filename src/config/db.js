@@ -39,15 +39,6 @@ async function initDB() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE TABLE IF NOT EXISTS activation_codes (
-                id SERIAL PRIMARY KEY,
-                code VARCHAR(50) UNIQUE NOT NULL,
-                is_used BOOLEAN DEFAULT FALSE,
-                used_by INT REFERENCES users(id),
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
             CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
