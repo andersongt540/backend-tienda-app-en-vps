@@ -1,0 +1,14 @@
+{
+  "name": "fliigo-backend",
+  "version": "1.0.0",
+  "description": "Backend para app fliigo",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.22.0",
+    "bcryptjs": "^2.4.3"
+  }
+}
