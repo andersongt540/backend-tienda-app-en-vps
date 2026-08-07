@@ -67,6 +67,19 @@ async function initDB() {
                 is_paid BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+
+            -- NUEVA TABLA: Almacena las ventas conectadas con el inventario y los datos del cliente
+            CREATE TABLE IF NOT EXISTS sales (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                client_name VARCHAR(255) NOT NULL,
+                address TEXT,
+                phone VARCHAR(50),
+                product_id INT REFERENCES products(id) ON DELETE SET NULL,
+                quantity INT NOT NULL DEFAULT 1,
+                total_price DECIMAL(10, 2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         `);
         console.log("Tablas multi-tenant de la base de datos verificadas/creadas correctamente.");
     } catch (err) {
