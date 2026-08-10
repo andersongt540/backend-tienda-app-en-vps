@@ -2,7 +2,8 @@ const express = require('express');
 const { initDB } = require('./src/config/db');
 const authRoutes = require('./src/routes/authRoutes');
 const storeRoutes = require('./src/routes/storeRoutes');
-const userRoutes = require('./src/routes/userRoutes'); // <-- 1. Importar las rutas de usuarios
+const userRoutes = require('./src/routes/userRoutes');
+const salesRoutes = require('./src/routes/salesRoutes'); // <-- 1. Importar las rutas de ventas
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,7 +16,8 @@ initDB();
 // Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/store', storeRoutes);
-app.use('/api/users', userRoutes); // <-- 2. Registrar el endpoint base para los usuarios
+app.use('/api/users', userRoutes);
+app.use('/api/sales', salesRoutes); // <-- 2. Registrar el endpoint base para las ventas
 
 // Ruta raíz de prueba
 app.get('/', (req, res) => {

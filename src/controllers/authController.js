@@ -48,6 +48,9 @@ const login = async (req, res) => {
 
         const storeCheck = await pool.query('SELECT * FROM stores WHERE user_id = $1', [user.id]);
         
+        // Obtener el ID de la tienda si existe para guardarlo en la app móvil
+        const storeId = storeCheck.rows.length > 0 ? storeCheck.rows[0].id : null;
+
         const token = jwt.sign(
             { userId: user.id, email: user.email },
             process.env.JWT_SECRET || 'tu_secreto_temporal', 
@@ -58,6 +61,7 @@ const login = async (req, res) => {
             success: true,
             message: 'Inicio de sesión exitoso.',
             userId: user.id,
+            storeId: storeId, // <-- Añadido para que el frontend guarde el ID de la tienda
             hasStore: storeCheck.rows.length > 0,
             token: token
         });
