@@ -39,16 +39,25 @@ async function initDB() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE TABLE IF NOT EXISTS products (
+           CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
                 name VARCHAR(255) NOT NULL,
                 price DECIMAL(10, 2) NOT NULL,
+                cost_price DECIMAL(10, 2) DEFAULT 0.00,
+                provider VARCHAR(255),
                 stock INT NOT NULL DEFAULT 0,
                 category VARCHAR(100),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS categories (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
             CREATE TABLE IF NOT EXISTS transactions (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,

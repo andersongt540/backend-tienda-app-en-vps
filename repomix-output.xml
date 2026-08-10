@@ -1,0 +1,1230 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.dockerignore
+.gitattributes
+backend_fliigo.xml
+docker-compose.yml
+Dockerfile
+index.js
+package.json
+src/config/db.js
+src/controllers/authController.js
+src/controllers/businessController.js
+src/controllers/categoryController.js
+src/controllers/productController.js
+src/controllers/salesController.js
+src/controllers/storeController.js
+src/controllers/userController.js
+src/routes/authRoutes.js
+src/routes/categoryRoutes.js
+src/routes/productRoutes.js
+src/routes/salesRoutes.js
+src/routes/storeRoutes.js
+src/routes/userRoutes.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/controllers/categoryController.js">
+const { pool } = require('../config/db');
+
+// Obtener categorías de la tienda
+exports.getCategoriesByStore = async (req, res) => {
+    const { storeId } = req.params;
+    try {
+        const result = await pool.query(
+            'SELECT id, store_id as "storeId", name FROM categories WHERE store_id = $1 ORDER BY id DESC',
+            [storeId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener categorías', details: err.message });
+    }
+};
+
+// Crear categoría
+exports.createCategory = async (req, res) => {
+    const { storeId, name } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO categories (store_id, name) VALUES ($1, $2)',
+            [storeId, name]
+        );
+        res.status(201).json({ success: true, message: 'Categoría creada exitosamente.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al crear la categoría', details: err.message });
+    }
+};
+</file>
+
+<file path="src/controllers/productController.js">
+const { pool } = require('../config/db');
+
+// Obtener productos de la tienda
+exports.getProductsByStore = async (req, res) => {
+    const { storeId } = req.params;
+    try {
+        const result = await pool.query(
+            'SELECT id, store_id as "storeId", name, price, cost_price as "costPrice", provider, stock, category FROM products WHERE store_id = $1 ORDER BY id DESC',
+            [storeId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener los productos', details: err.message });
+    }
+};
+
+// Registrar un producto
+exports.registerProduct = async (req, res) => {
+    const { storeId, name, price, costPrice, provider, stock, category } = req.body;
+    try {
+        await pool.query(
+            `INSERT INTO products (store_id, name, price, cost_price, provider, stock, category) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [storeId, name, price, costPrice || 0, provider || null, stock || 0, category || 'General']
+        );
+        res.status(201).json({ success: true, message: 'Producto registrado exitosamente.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al registrar el producto', details: err.message });
+    }
+};
+</file>
+
+<file path="src/routes/categoryRoutes.js">
+const express = require('express');
+const router = express.Router();
+const categoryController = require('../controllers/categoryController');
+
+router.get('/:storeId', categoryController.getCategoriesByStore);
+router.post('/', categoryController.createCategory);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/productRoutes.js">
+const express = require('express');
+const router = express.Router();
+const productController = require('../controllers/productController');
+
+router.get('/store/:storeId', productController.getProductsByStore);
+router.post('/register', productController.registerProduct);
+
+module.exports = router;
+</file>
+
+<file path=".dockerignore">
+node_modules
+npm-debug.log
+Dockerfile
+docker-compose.yml
+.git
+.env
+</file>
+
+<file path=".gitattributes">
+# Auto detect text files and perform LF normalization
+* text=auto
+</file>
+
+<file path="backend_fliigo.xml">
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.dockerignore
+.gitattributes
+docker-compose.yml
+Dockerfile
+index.js
+package.json
+src/config/db.js
+src/controllers/authController.js
+src/controllers/businessController.js
+src/controllers/salesController.js
+src/controllers/storeController.js
+src/controllers/userController.js
+src/routes/authRoutes.js
+src/routes/salesRoutes.js
+src/routes/storeRoutes.js
+src/routes/userRoutes.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".dockerignore">
+node_modules
+npm-debug.log
+Dockerfile
+docker-compose.yml
+.git
+.env
+</file>
+
+<file path=".gitattributes">
+# Auto detect text files and perform LF normalization
+* text=auto
+</file>
+
+<file path="docker-compose.yml">
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: andersongt540
+      POSTGRES_PASSWORD: Eikary24$
+      POSTGRES_DB: tienda_app_bd
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U andersongt540 -d tienda_app_bd"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: node_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+</file>
+
+<file path="Dockerfile">
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["node", "index.js"]
+</file>
+
+<file path="src/controllers/businessController.js">
+
+</file>
+
+<file path="src/controllers/salesController.js">
+const { pool } = require('../config/db');
+
+exports.registerSale = async (req, res) => {
+    const { storeId, clientName, address, phone, productId, quantity } = req.body;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN'); // Iniciar transacción
+
+        // 1. Obtener producto y validar stock
+        const productRes = await client.query(
+            'SELECT name, price, stock FROM products WHERE id = $1 AND store_id = $2',
+            [productId, storeId]
+        );
+
+        if (productRes.rows.length === 0) {
+            throw new Error("Producto no encontrado");
+        }
+
+        const product = productRes.rows[0];
+        if (product.stock < quantity) {
+            throw new Error("Stock insuficiente");
+        }
+
+        const totalPrice = product.price * quantity;
+
+        // 2. Descontar stock
+        await client.query(
+            'UPDATE products SET stock = stock - $1 WHERE id = $2',
+            [quantity, productId]
+        );
+
+        // 3. Insertar registro en la nueva tabla 'sales'
+        const saleRes = await client.query(
+            `INSERT INTO sales (store_id, client_name, address, phone, product_id, quantity, total_price)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [storeId, clientName, address, phone, productId, quantity, totalPrice]
+        );
+
+        // 4. Registrar en 'transactions' para que aparezca en el balance
+        await client.query(
+            `INSERT INTO transactions (store_id, type, amount, description)
+             VALUES ($1, 'income', $2, $3)`,
+            [storeId, totalPrice, `Venta: ${product.name} (x${quantity}) a ${clientName}`]
+        );
+
+        await client.query('COMMIT'); // Guardar cambios
+        res.status(201).json({ success: true, sale: saleRes.rows[0] });
+
+    } catch (err) {
+        await client.query('ROLLBACK'); // Deshacer si falla
+        res.status(400).json({ success: false, error: err.message });
+    } finally {
+        client.release();
+    }
+};
+
+// Nueva función para obtener ventas recientes (para tu lista en el Balance)
+exports.getRecentSales = async (req, res) => {
+    const { storeId } = req.query;
+    try {
+        const query = `
+            SELECT s.*, p.name as product_name 
+            FROM sales s
+            JOIN products p ON s.product_id = p.id
+            WHERE s.store_id = $1 
+            ORDER BY s.created_at DESC LIMIT 10;
+        `;
+        const result = await pool.query(query, [storeId]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Error al obtener ventas" });
+    }
+};
+</file>
+
+<file path="src/controllers/storeController.js">
+const { pool } = require('../config/db');
+
+const setupStore = async (req, res) => {
+    const { userId, storeName, category, address, phone } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO stores (user_id, name, category, address, phone) VALUES ($1, $2, $3, $4, $5)',
+            [userId, storeName, category, address, phone]
+        );
+        res.status(201).json({ success: true, message: 'Tienda configurada y aislada correctamente.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al registrar la tienda', details: err.message });
+    }
+};
+
+const getStoreBalance = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const storeResult = await pool.query('SELECT * FROM stores WHERE user_id = $1', [userId]);
+        if (storeResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Tienda no encontrada.' });
+        }
+        const store = storeResult.rows[0];
+
+        const balanceResult = await pool.query(
+            `SELECT 
+                COALESCE(SUM(CASE WHEN type = 'income' OR type = 'sale' THEN amount ELSE 0 END), 0) as total_income,
+                COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expenses
+             FROM transactions WHERE store_id = $1`,
+            [store.id]
+        );
+
+        const { total_income, total_expenses } = balanceResult.rows[0];
+        const netBalance = parseFloat(total_income) - parseFloat(total_expenses);
+
+        res.status(200).json({
+            success: true,
+            storeName: store.name,
+            category: store.category,
+            balance: netBalance,
+            totalIncome: total_income,
+            totalExpenses: total_expenses
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener el balance', details: err.message });
+    }
+};
+
+module.exports = { setupStore, getStoreBalance };
+</file>
+
+<file path="src/controllers/userController.js">
+const { pool } = require('../config/db');
+
+// Obtener todos los usuarios
+exports.getUsers = async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, email, is_active, created_at FROM users ORDER BY id DESC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener los usuarios', details: err.message });
+    }
+};
+
+// Actualizar el estado (is_active) de un usuario
+exports.updateUserStatus = async (req, res) => {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id, email, is_active',
+            [is_active, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al actualizar el estado', details: err.message });
+    }
+};
+</file>
+
+<file path="src/routes/salesRoutes.js">
+const express = require('express');
+const router = express.Router();
+const salesController = require('../controllers/salesController');
+
+router.post('/register', salesController.registerSale);
+router.get('/recent', salesController.getRecentSales);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/storeRoutes.js">
+const express = require('express');
+const router = express.Router();
+const { setupStore, getStoreBalance } = require('../controllers/storeController');
+
+router.post('/setup', setupStore);
+router.get('/balance/:userId', getStoreBalance);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/userRoutes.js">
+const express = require('express');
+const router = express.Router();
+const userController = require('../controllers/userController');
+
+router.get('/', userController.getUsers);
+router.patch('/:id/status', userController.updateUserStatus);
+
+module.exports = router;
+</file>
+
+<file path="package.json">
+{
+  "name": "fliigo-backend",
+  "version": "1.0.0",
+  "description": "Backend para app fliigo",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.22.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
+</file>
+
+<file path="src/routes/authRoutes.js">
+const express = require('express');
+const router = express.Router();
+const { register, login } = require('../controllers/authController');
+
+router.post('/register', register);
+router.post('/login', login);
+
+module.exports = router;
+</file>
+
+<file path="index.js">
+const express = require('express');
+const { initDB } = require('./src/config/db');
+const authRoutes = require('./src/routes/authRoutes');
+const storeRoutes = require('./src/routes/storeRoutes');
+const userRoutes = require('./src/routes/userRoutes'); // <-- 1. Importar las rutas de usuarios
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+
+// Inicializar base de datos
+initDB();
+
+// Rutas de la API
+app.use('/api/auth', authRoutes);
+app.use('/api/store', storeRoutes);
+app.use('/api/users', userRoutes); // <-- 2. Registrar el endpoint base para los usuarios
+
+// Ruta raíz de prueba
+app.get('/', (req, res) => {
+    res.json({ mensaje: '¡El backend modular multi-tenant está funcionando correctamente!' });
+});
+
+// Iniciar servidor
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
+</file>
+
+<file path="src/config/db.js">
+const { Pool } = require('pg');
+
+// Si existe DATABASE_URL (en la nube), la usa. Si no, usa la configuración local.
+const poolConfig = process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false // Requerido para bases de datos en la nube como Render
+        }
+      }
+    : {
+        user: process.env.DB_USER || 'andersongt540',
+        host: process.env.DB_HOST || 'db',
+        database: process.env.DB_DATABASE || 'tienda_app_bd',
+        password: process.env.DB_PASSWORD || 'Eikary24$',
+        port: process.env.DB_PORT || 5432,
+      };
+
+const pool = new Pool(poolConfig);
+
+async function initDB() {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                is_active BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS stores (
+                id SERIAL PRIMARY KEY,
+                user_id INT REFERENCES users(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                category VARCHAR(255),
+                address TEXT,
+                phone VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS products (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                price DECIMAL(10, 2) NOT NULL,
+                stock INT NOT NULL DEFAULT 0,
+                category VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS transactions (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                type VARCHAR(50) NOT NULL, 
+                amount DECIMAL(10, 2) NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS debts (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                client_name VARCHAR(255) NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                type VARCHAR(50) DEFAULT 'receivable', 
+                is_paid BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- NUEVA TABLA: Almacena las ventas conectadas con el inventario y los datos del cliente
+            CREATE TABLE IF NOT EXISTS sales (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                client_name VARCHAR(255) NOT NULL,
+                address TEXT,
+                phone VARCHAR(50),
+                product_id INT REFERENCES products(id) ON DELETE SET NULL,
+                quantity INT NOT NULL DEFAULT 1,
+                total_price DECIMAL(10, 2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log("Tablas multi-tenant de la base de datos verificadas/creadas correctamente.");
+    } catch (err) {
+        console.error("Error al inicializar las tablas:", err);
+    }
+}
+
+module.exports = { pool, initDB };
+</file>
+
+<file path="src/controllers/authController.js">
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { pool } = require('../config/db');
+
+const register = async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (userCheck.rows.length > 0) {
+            return res.status(400).json({ error: 'El correo electrónico ya está registrado.' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const newUser = await pool.query(
+            'INSERT INTO users (email, password_hash, is_active) VALUES ($1, $2, false) RETURNING id, email, is_active',
+            [email, hashedPassword]
+        );
+
+        res.status(201).json({ 
+            success: true, 
+            message: 'Registro exitoso. Tu cuenta está pendiente de activación por el administrador.', 
+            userId: newUser.rows[0].id 
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Error en el servidor', details: err.message });
+    }
+};
+
+const login = async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (userCheck.rows.length === 0) {
+            return res.status(400).json({ success: false, error: 'Usuario o contraseña incorrectos.' });
+        }
+
+        const user = userCheck.rows[0];
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, error: 'Usuario o contraseña incorrectos.' });
+        }
+
+        if (!user.is_active) {
+            return res.status(403).json({ success: false, error: 'Tu cuenta se encuentra inactiva. Contacta al administrador.' });
+        }
+
+        const storeCheck = await pool.query('SELECT * FROM stores WHERE user_id = $1', [user.id]);
+        
+        const token = jwt.sign(
+            { userId: user.id, email: user.email },
+            process.env.JWT_SECRET || 'tu_secreto_temporal', 
+            { expiresIn: '30d' }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Inicio de sesión exitoso.',
+            userId: user.id,
+            hasStore: storeCheck.rows.length > 0,
+            token: token
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: 'Error en el servidor', details: err.message });
+    }
+};
+
+module.exports = { register, login };
+</file>
+
+</files>
+</file>
+
+<file path="docker-compose.yml">
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: andersongt540
+      POSTGRES_PASSWORD: Eikary24$
+      POSTGRES_DB: tienda_app_bd
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U andersongt540 -d tienda_app_bd"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: node_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+</file>
+
+<file path="Dockerfile">
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["node", "index.js"]
+</file>
+
+<file path="src/controllers/businessController.js">
+
+</file>
+
+<file path="src/controllers/salesController.js">
+const { pool } = require('../config/db');
+
+exports.registerSale = async (req, res) => {
+    const { storeId, clientName, address, phone, productId, quantity } = req.body;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN'); // Iniciar transacción
+
+        // 1. Obtener producto y validar stock
+        const productRes = await client.query(
+            'SELECT name, price, stock FROM products WHERE id = $1 AND store_id = $2',
+            [productId, storeId]
+        );
+
+        if (productRes.rows.length === 0) {
+            throw new Error("Producto no encontrado");
+        }
+
+        const product = productRes.rows[0];
+        if (product.stock < quantity) {
+            throw new Error("Stock insuficiente");
+        }
+
+        const totalPrice = product.price * quantity;
+
+        // 2. Descontar stock
+        await client.query(
+            'UPDATE products SET stock = stock - $1 WHERE id = $2',
+            [quantity, productId]
+        );
+
+        // 3. Insertar registro en la nueva tabla 'sales'
+        const saleRes = await client.query(
+            `INSERT INTO sales (store_id, client_name, address, phone, product_id, quantity, total_price)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [storeId, clientName, address, phone, productId, quantity, totalPrice]
+        );
+
+        // 4. Registrar en 'transactions' para que aparezca en el balance
+        await client.query(
+            `INSERT INTO transactions (store_id, type, amount, description)
+             VALUES ($1, 'income', $2, $3)`,
+            [storeId, totalPrice, `Venta: ${product.name} (x${quantity}) a ${clientName}`]
+        );
+
+        await client.query('COMMIT'); // Guardar cambios
+        res.status(201).json({ success: true, sale: saleRes.rows[0] });
+
+    } catch (err) {
+        await client.query('ROLLBACK'); // Deshacer si falla
+        res.status(400).json({ success: false, error: err.message });
+    } finally {
+        client.release();
+    }
+};
+
+// Nueva función para obtener ventas recientes (para tu lista en el Balance)
+exports.getRecentSales = async (req, res) => {
+    const { storeId } = req.query;
+    try {
+        const query = `
+            SELECT s.*, p.name as product_name 
+            FROM sales s
+            JOIN products p ON s.product_id = p.id
+            WHERE s.store_id = $1 
+            ORDER BY s.created_at DESC LIMIT 10;
+        `;
+        const result = await pool.query(query, [storeId]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Error al obtener ventas" });
+    }
+};
+</file>
+
+<file path="src/controllers/storeController.js">
+const { pool } = require('../config/db');
+
+const setupStore = async (req, res) => {
+    const { userId, storeName, category, address, phone } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO stores (user_id, name, category, address, phone) VALUES ($1, $2, $3, $4, $5)',
+            [userId, storeName, category, address, phone]
+        );
+        res.status(201).json({ success: true, message: 'Tienda configurada y aislada correctamente.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al registrar la tienda', details: err.message });
+    }
+};
+
+const getStoreBalance = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const storeResult = await pool.query('SELECT * FROM stores WHERE user_id = $1', [userId]);
+        if (storeResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Tienda no encontrada.' });
+        }
+        const store = storeResult.rows[0];
+
+        const balanceResult = await pool.query(
+            `SELECT 
+                COALESCE(SUM(CASE WHEN type = 'income' OR type = 'sale' THEN amount ELSE 0 END), 0) as total_income,
+                COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expenses
+             FROM transactions WHERE store_id = $1`,
+            [store.id]
+        );
+
+        const { total_income, total_expenses } = balanceResult.rows[0];
+        const netBalance = parseFloat(total_income) - parseFloat(total_expenses);
+
+        res.status(200).json({
+            success: true,
+            storeName: store.name,
+            category: store.category,
+            balance: netBalance,
+            totalIncome: total_income,
+            totalExpenses: total_expenses
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener el balance', details: err.message });
+    }
+};
+
+module.exports = { setupStore, getStoreBalance };
+</file>
+
+<file path="src/controllers/userController.js">
+const { pool } = require('../config/db');
+
+// Obtener todos los usuarios
+exports.getUsers = async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, email, is_active, created_at FROM users ORDER BY id DESC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener los usuarios', details: err.message });
+    }
+};
+
+// Actualizar el estado (is_active) de un usuario
+exports.updateUserStatus = async (req, res) => {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id, email, is_active',
+            [is_active, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al actualizar el estado', details: err.message });
+    }
+};
+</file>
+
+<file path="src/routes/salesRoutes.js">
+const express = require('express');
+const router = express.Router();
+const salesController = require('../controllers/salesController');
+
+router.post('/register', salesController.registerSale);
+router.get('/recent', salesController.getRecentSales);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/storeRoutes.js">
+const express = require('express');
+const router = express.Router();
+const { setupStore, getStoreBalance } = require('../controllers/storeController');
+
+router.post('/setup', setupStore);
+router.get('/balance/:userId', getStoreBalance);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/userRoutes.js">
+const express = require('express');
+const router = express.Router();
+const userController = require('../controllers/userController');
+
+router.get('/', userController.getUsers);
+router.patch('/:id/status', userController.updateUserStatus);
+
+module.exports = router;
+</file>
+
+<file path="package.json">
+{
+  "name": "fliigo-backend",
+  "version": "1.0.0",
+  "description": "Backend para app fliigo",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.22.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
+</file>
+
+<file path="src/routes/authRoutes.js">
+const express = require('express');
+const router = express.Router();
+const { register, login } = require('../controllers/authController');
+
+router.post('/register', register);
+router.post('/login', login);
+
+module.exports = router;
+</file>
+
+<file path="index.js">
+const express = require('express');
+const { initDB } = require('./src/config/db');
+const authRoutes = require('./src/routes/authRoutes');
+const storeRoutes = require('./src/routes/storeRoutes');
+const userRoutes = require('./src/routes/userRoutes');
+const salesRoutes = require('./src/routes/salesRoutes');
+const productRoutes = require('./src/routes/productRoutes');     // <-- 1. Importar rutas de productos[cite: 5]
+const categoryRoutes = require('./src/routes/categoryRoutes');   // <-- 2. Importar rutas de categorías[cite: 5]
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+
+// Inicializar base de datos
+initDB();
+
+// Rutas de la API
+app.use('/api/auth', authRoutes);
+app.use('/api/store', storeRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/products', productRoutes);       // <-- 3. Registrar endpoint de productos[cite: 5]
+app.use('/api/store', categoryRoutes);         // <-- 4. Registrar endpoint de categorías (maneja /api/store/:storeId y /api/store/category)[cite: 5]
+
+// Ruta raíz de prueba
+app.get('/', (req, res) => {
+    res.json({ mensaje: '¡El backend modular multi-tenant está funcionando correctamente!' });
+});
+
+// Iniciar servidor
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
+</file>
+
+<file path="src/config/db.js">
+const { Pool } = require('pg');
+
+// Si existe DATABASE_URL (en la nube), la usa. Si no, usa la configuración local.
+const poolConfig = process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false // Requerido para bases de datos en la nube como Render
+        }
+      }
+    : {
+        user: process.env.DB_USER || 'andersongt540',
+        host: process.env.DB_HOST || 'db',
+        database: process.env.DB_DATABASE || 'tienda_app_bd',
+        password: process.env.DB_PASSWORD || 'Eikary24$',
+        port: process.env.DB_PORT || 5432,
+      };
+
+const pool = new Pool(poolConfig);
+
+async function initDB() {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                is_active BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS stores (
+                id SERIAL PRIMARY KEY,
+                user_id INT REFERENCES users(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                category VARCHAR(255),
+                address TEXT,
+                phone VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+           CREATE TABLE IF NOT EXISTS products (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                price DECIMAL(10, 2) NOT NULL,
+                cost_price DECIMAL(10, 2) DEFAULT 0.00,
+                provider VARCHAR(255),
+                stock INT NOT NULL DEFAULT 0,
+                category VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS categories (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE TABLE IF NOT EXISTS transactions (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                type VARCHAR(50) NOT NULL, 
+                amount DECIMAL(10, 2) NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS debts (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                client_name VARCHAR(255) NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                type VARCHAR(50) DEFAULT 'receivable', 
+                is_paid BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- NUEVA TABLA: Almacena las ventas conectadas con el inventario y los datos del cliente
+            CREATE TABLE IF NOT EXISTS sales (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                client_name VARCHAR(255) NOT NULL,
+                address TEXT,
+                phone VARCHAR(50),
+                product_id INT REFERENCES products(id) ON DELETE SET NULL,
+                quantity INT NOT NULL DEFAULT 1,
+                total_price DECIMAL(10, 2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log("Tablas multi-tenant de la base de datos verificadas/creadas correctamente.");
+    } catch (err) {
+        console.error("Error al inicializar las tablas:", err);
+    }
+}
+
+module.exports = { pool, initDB };
+</file>
+
+<file path="src/controllers/authController.js">
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { pool } = require('../config/db');
+
+const register = async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (userCheck.rows.length > 0) {
+            return res.status(400).json({ error: 'El correo electrónico ya está registrado.' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const newUser = await pool.query(
+            'INSERT INTO users (email, password_hash, is_active) VALUES ($1, $2, false) RETURNING id, email, is_active',
+            [email, hashedPassword]
+        );
+
+        res.status(201).json({ 
+            success: true, 
+            message: 'Registro exitoso. Tu cuenta está pendiente de activación por el administrador.', 
+            userId: newUser.rows[0].id 
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Error en el servidor', details: err.message });
+    }
+};
+
+const login = async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (userCheck.rows.length === 0) {
+            return res.status(400).json({ success: false, error: 'Usuario o contraseña incorrectos.' });
+        }
+
+        const user = userCheck.rows[0];
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, error: 'Usuario o contraseña incorrectos.' });
+        }
+
+        if (!user.is_active) {
+            return res.status(403).json({ success: false, error: 'Tu cuenta se encuentra inactiva. Contacta al administrador.' });
+        }
+
+        const storeCheck = await pool.query('SELECT * FROM stores WHERE user_id = $1', [user.id]);
+        
+        // Obtener el ID de la tienda si existe para guardarlo en la app móvil
+        const storeId = storeCheck.rows.length > 0 ? storeCheck.rows[0].id : null;
+
+        const token = jwt.sign(
+            { userId: user.id, email: user.email },
+            process.env.JWT_SECRET || 'tu_secreto_temporal', 
+            { expiresIn: '30d' }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Inicio de sesión exitoso.',
+            userId: user.id,
+            storeId: storeId, // <-- Añadido para que el frontend guarde el ID de la tienda
+            hasStore: storeCheck.rows.length > 0,
+            token: token
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: 'Error en el servidor', details: err.message });
+    }
+};
+
+module.exports = { register, login };
+</file>
+
+</files>
