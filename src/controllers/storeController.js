@@ -22,6 +22,7 @@ const getStoreBalance = async (req, res) => {
         }
         const store = storeResult.rows[0];
 
+        // 1. Obtener balance de transacciones
         const balanceResult = await pool.query(
             `SELECT 
                 COALESCE(SUM(CASE WHEN type = 'income' OR type = 'sale' THEN amount ELSE 0 END), 0) as total_income,
@@ -33,13 +34,29 @@ const getStoreBalance = async (req, res) => {
         const { total_income, total_expenses } = balanceResult.rows[0];
         const netBalance = parseFloat(total_income) - parseFloat(total_expenses);
 
+        // 2. Obtener las ventas recientes para mapearlas en el app
+        const salesResult = await pool.query(
+            `SELECT 
+                p.name as "productName", 
+                s.client_name as "clientName", 
+                s.total_price as "amount"
+             FROM sales s
+             LEFT JOIN products p ON s.product_id = p.id
+             WHERE s.store_id = $1
+             ORDER BY s.created_at DESC 
+             LIMIT 20`,
+            [store.id]
+        );
+
+        // 3. Responder con la estructura que espera BalanceResponse.kt
         res.status(200).json({
             success: true,
             storeName: store.name,
             category: store.category,
             balance: netBalance,
             totalIncome: total_income,
-            totalExpenses: total_expenses
+            totalExpenses: total_expenses,
+            sales: salesResult.rows // <--- ¡Aquí se incluye la lista de ventas!
         });
     } catch (err) {
         res.status(500).json({ error: 'Error al obtener el balance', details: err.message });
