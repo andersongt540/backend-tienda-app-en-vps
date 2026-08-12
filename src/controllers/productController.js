@@ -18,11 +18,12 @@ exports.getProductsByStore = async (req, res) => {
 exports.registerProduct = async (req, res) => {
     const { storeId, name, price, costPrice, provider, stock, category } = req.body;
     try {
-        await pool.query(
-            `INSERT INTO products (store_id, name, price, cost_price, provider, stock, category) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [storeId, name, price, costPrice || 0, provider || null, stock || 0, category || 'General']
-        );
+        // Solo añade el campo barcode al INSERT
+await pool.query(
+    `INSERT INTO products (store_id, barcode, name, price, cost_price, provider, stock, category) 
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [storeId, barcode || null, name, price, costPrice || 0, provider || null, stock || 0, category || 'General']
+);
         res.status(201).json({ success: true, message: 'Producto registrado exitosamente.' });
     } catch (err) {
         res.status(500).json({ error: 'Error al registrar el producto', details: err.message });

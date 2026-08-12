@@ -66,93 +66,6 @@ src/routes/userRoutes.js
 <files>
 This section contains the contents of the repository's files.
 
-<file path="src/controllers/categoryController.js">
-const { pool } = require('../config/db');
-
-// Obtener categorías de la tienda
-exports.getCategoriesByStore = async (req, res) => {
-    const { storeId } = req.params;
-    try {
-        const result = await pool.query(
-            'SELECT id, store_id as "storeId", name FROM categories WHERE store_id = $1 ORDER BY id DESC',
-            [storeId]
-        );
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: 'Error al obtener categorías', details: err.message });
-    }
-};
-
-// Crear categoría
-exports.createCategory = async (req, res) => {
-    const { storeId, name } = req.body;
-    try {
-        await pool.query(
-            'INSERT INTO categories (store_id, name) VALUES ($1, $2)',
-            [storeId, name]
-        );
-        res.status(201).json({ success: true, message: 'Categoría creada exitosamente.' });
-    } catch (err) {
-        res.status(500).json({ error: 'Error al crear la categoría', details: err.message });
-    }
-};
-</file>
-
-<file path="src/controllers/productController.js">
-const { pool } = require('../config/db');
-
-// Obtener productos de la tienda
-exports.getProductsByStore = async (req, res) => {
-    const { storeId } = req.params;
-    try {
-        const result = await pool.query(
-            'SELECT id, store_id as "storeId", name, price, cost_price as "costPrice", provider, stock, category FROM products WHERE store_id = $1 ORDER BY id DESC',
-            [storeId]
-        );
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: 'Error al obtener los productos', details: err.message });
-    }
-};
-
-// Registrar un producto
-exports.registerProduct = async (req, res) => {
-    const { storeId, name, price, costPrice, provider, stock, category } = req.body;
-    try {
-        await pool.query(
-            `INSERT INTO products (store_id, name, price, cost_price, provider, stock, category) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [storeId, name, price, costPrice || 0, provider || null, stock || 0, category || 'General']
-        );
-        res.status(201).json({ success: true, message: 'Producto registrado exitosamente.' });
-    } catch (err) {
-        res.status(500).json({ error: 'Error al registrar el producto', details: err.message });
-    }
-};
-</file>
-
-<file path="src/routes/categoryRoutes.js">
-const express = require('express');
-const router = express.Router();
-const categoryController = require('../controllers/categoryController');
-
-router.get('/:storeId', categoryController.getCategoriesByStore);
-router.post('/', categoryController.createCategory);
-
-module.exports = router;
-</file>
-
-<file path="src/routes/productRoutes.js">
-const express = require('express');
-const router = express.Router();
-const productController = require('../controllers/productController');
-
-router.get('/store/:storeId', productController.getProductsByStore);
-router.post('/register', productController.registerProduct);
-
-module.exports = router;
-</file>
-
 <file path=".dockerignore">
 node_modules
 npm-debug.log
@@ -787,6 +700,167 @@ CMD ["node", "index.js"]
 
 </file>
 
+<file path="src/controllers/categoryController.js">
+const { pool } = require('../config/db');
+
+// Obtener categorías de la tienda
+exports.getCategoriesByStore = async (req, res) => {
+    const { storeId } = req.params;
+    try {
+        const result = await pool.query(
+            'SELECT id, store_id as "storeId", name FROM categories WHERE store_id = $1 ORDER BY id DESC',
+            [storeId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener categorías', details: err.message });
+    }
+};
+
+// Crear categoría
+exports.createCategory = async (req, res) => {
+    const { storeId, name } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO categories (store_id, name) VALUES ($1, $2)',
+            [storeId, name]
+        );
+        res.status(201).json({ success: true, message: 'Categoría creada exitosamente.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al crear la categoría', details: err.message });
+    }
+};
+</file>
+
+<file path="src/controllers/productController.js">
+const { pool } = require('../config/db');
+
+// Obtener productos de la tienda
+exports.getProductsByStore = async (req, res) => {
+    const { storeId } = req.params;
+    try {
+        const result = await pool.query(
+            'SELECT id, store_id as "storeId", name, price, cost_price as "costPrice", provider, stock, category FROM products WHERE store_id = $1 ORDER BY id DESC',
+            [storeId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener los productos', details: err.message });
+    }
+};
+
+// Registrar un producto
+exports.registerProduct = async (req, res) => {
+    const { storeId, name, price, costPrice, provider, stock, category } = req.body;
+    try {
+        await pool.query(
+            `INSERT INTO products (store_id, name, price, cost_price, provider, stock, category) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [storeId, name, price, costPrice || 0, provider || null, stock || 0, category || 'General']
+        );
+        res.status(201).json({ success: true, message: 'Producto registrado exitosamente.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al registrar el producto', details: err.message });
+    }
+};
+</file>
+
+<file path="src/controllers/userController.js">
+const { pool } = require('../config/db');
+
+// Obtener todos los usuarios
+exports.getUsers = async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, email, is_active, created_at FROM users ORDER BY id DESC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener los usuarios', details: err.message });
+    }
+};
+
+// Actualizar el estado (is_active) de un usuario
+exports.updateUserStatus = async (req, res) => {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id, email, is_active',
+            [is_active, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al actualizar el estado', details: err.message });
+    }
+};
+</file>
+
+<file path="src/routes/categoryRoutes.js">
+const express = require('express');
+const router = express.Router();
+const categoryController = require('../controllers/categoryController');
+
+router.get('/:storeId', categoryController.getCategoriesByStore);
+router.post('/', categoryController.createCategory);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/productRoutes.js">
+const express = require('express');
+const router = express.Router();
+const productController = require('../controllers/productController');
+
+router.get('/store/:storeId', productController.getProductsByStore);
+router.post('/register', productController.registerProduct);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/storeRoutes.js">
+const express = require('express');
+const router = express.Router();
+const { setupStore, getStoreBalance } = require('../controllers/storeController');
+
+router.post('/setup', setupStore);
+router.get('/balance/:userId', getStoreBalance);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/userRoutes.js">
+const express = require('express');
+const router = express.Router();
+const userController = require('../controllers/userController');
+
+router.get('/', userController.getUsers);
+router.patch('/:id/status', userController.updateUserStatus);
+
+module.exports = router;
+</file>
+
+<file path="package.json">
+{
+  "name": "fliigo-backend",
+  "version": "1.0.0",
+  "description": "Backend para app fliigo",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.22.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
+</file>
+
 <file path="src/controllers/salesController.js">
 const { pool } = require('../config/db');
 
@@ -862,6 +936,68 @@ exports.getRecentSales = async (req, res) => {
         res.status(500).json({ error: "Error al obtener ventas" });
     }
 };
+// src/controllers/salesController.js
+
+exports.deleteSale = async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // 1. Buscar la venta para saber qué producto y cantidad devolver al stock
+        const saleRes = await client.query('SELECT product_id, quantity FROM sales WHERE id = $1', [id]);
+        
+        if (saleRes.rows.length > 0) {
+            const { product_id, quantity } = saleRes.rows[0];
+            
+            // 2. Devolver stock si el producto aún existe
+            if (product_id) {
+                await client.query(
+                    'UPDATE products SET stock = stock + $1 WHERE id = $2',
+                    [quantity, product_id]
+                );
+            }
+        }
+
+        // 3. Eliminar la venta
+        // Nota: Dependiendo de tu lógica, podrías querer borrar también la 'transaction' asociada
+        await client.query('DELETE FROM sales WHERE id = $1', [id]);
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: "Venta eliminada y stock actualizado." });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: "Error al eliminar la venta", details: err.message });
+    } finally {
+        client.release();
+    }
+};
+</file>
+
+<file path="src/routes/authRoutes.js">
+const express = require('express');
+const router = express.Router();
+const { register, login } = require('../controllers/authController');
+
+router.post('/register', register);
+router.post('/login', login);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/salesRoutes.js">
+// src/routes/salesRoutes.js
+const express = require('express');
+const router = express.Router();
+const salesController = require('../controllers/salesController');
+
+router.post('/register', salesController.registerSale);
+router.get('/recent', salesController.getRecentSales);
+router.delete('/:id', salesController.deleteSale); // <-- Nueva ruta
+
+module.exports = router;
 </file>
 
 <file path="src/controllers/storeController.js">
@@ -880,6 +1016,8 @@ const setupStore = async (req, res) => {
     }
 };
 
+// src/controllers/storeController.js
+
 const getStoreBalance = async (req, res) => {
     const { userId } = req.params;
     try {
@@ -889,11 +1027,31 @@ const getStoreBalance = async (req, res) => {
         }
         const store = storeResult.rows[0];
 
+        // 1. Obtener totales
         const balanceResult = await pool.query(
             `SELECT 
                 COALESCE(SUM(CASE WHEN type = 'income' OR type = 'sale' THEN amount ELSE 0 END), 0) as total_income,
                 COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expenses
              FROM transactions WHERE store_id = $1`,
+            [store.id]
+        );
+
+        // 2. Obtener lista de ventas detallada (para el DTO de la App)
+        // Usamos TO_CHAR para formatear la fecha como YYYY-MM-DD para el filtro de la app
+        const salesResult = await pool.query(
+            `SELECT 
+                s.id, 
+                p.name as "productName", 
+                s.client_name as "clientName", 
+                s.total_price as amount, 
+                TO_CHAR(s.created_at, 'YYYY-MM-DD HH24:MI:SS') as date,
+                s.address,
+                s.phone,
+                s.quantity
+             FROM sales s
+             LEFT JOIN products p ON s.product_id = p.id
+             WHERE s.store_id = $1
+             ORDER BY s.created_at DESC`,
             [store.id]
         );
 
@@ -906,7 +1064,8 @@ const getStoreBalance = async (req, res) => {
             category: store.category,
             balance: netBalance,
             totalIncome: total_income,
-            totalExpenses: total_expenses
+            totalExpenses: total_expenses,
+            sales: salesResult.rows // <-- Lista de ventas añadida
         });
     } catch (err) {
         res.status(500).json({ error: 'Error al obtener el balance', details: err.message });
@@ -914,102 +1073,6 @@ const getStoreBalance = async (req, res) => {
 };
 
 module.exports = { setupStore, getStoreBalance };
-</file>
-
-<file path="src/controllers/userController.js">
-const { pool } = require('../config/db');
-
-// Obtener todos los usuarios
-exports.getUsers = async (req, res) => {
-    try {
-        const result = await pool.query('SELECT id, email, is_active, created_at FROM users ORDER BY id DESC');
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: 'Error al obtener los usuarios', details: err.message });
-    }
-};
-
-// Actualizar el estado (is_active) de un usuario
-exports.updateUserStatus = async (req, res) => {
-    const { id } = req.params;
-    const { is_active } = req.body;
-    try {
-        const result = await pool.query(
-            'UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id, email, is_active',
-            [is_active, id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Usuario no encontrado' });
-        }
-
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: 'Error al actualizar el estado', details: err.message });
-    }
-};
-</file>
-
-<file path="src/routes/salesRoutes.js">
-const express = require('express');
-const router = express.Router();
-const salesController = require('../controllers/salesController');
-
-router.post('/register', salesController.registerSale);
-router.get('/recent', salesController.getRecentSales);
-
-module.exports = router;
-</file>
-
-<file path="src/routes/storeRoutes.js">
-const express = require('express');
-const router = express.Router();
-const { setupStore, getStoreBalance } = require('../controllers/storeController');
-
-router.post('/setup', setupStore);
-router.get('/balance/:userId', getStoreBalance);
-
-module.exports = router;
-</file>
-
-<file path="src/routes/userRoutes.js">
-const express = require('express');
-const router = express.Router();
-const userController = require('../controllers/userController');
-
-router.get('/', userController.getUsers);
-router.patch('/:id/status', userController.updateUserStatus);
-
-module.exports = router;
-</file>
-
-<file path="package.json">
-{
-  "name": "fliigo-backend",
-  "version": "1.0.0",
-  "description": "Backend para app fliigo",
-  "main": "index.js",
-  "scripts": {
-    "dev": "node index.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "pg": "^8.22.0",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2"
-  }
-}
-</file>
-
-<file path="src/routes/authRoutes.js">
-const express = require('express');
-const router = express.Router();
-const { register, login } = require('../controllers/authController');
-
-router.post('/register', register);
-router.post('/login', login);
-
-module.exports = router;
 </file>
 
 <file path="index.js">
