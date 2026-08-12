@@ -72,3 +72,41 @@ exports.getRecentSales = async (req, res) => {
         res.status(500).json({ error: "Error al obtener ventas" });
     }
 };
+// src/controllers/salesController.js
+
+exports.deleteSale = async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // 1. Buscar la venta para saber qué producto y cantidad devolver al stock
+        const saleRes = await client.query('SELECT product_id, quantity FROM sales WHERE id = $1', [id]);
+        
+        if (saleRes.rows.length > 0) {
+            const { product_id, quantity } = saleRes.rows[0];
+            
+            // 2. Devolver stock si el producto aún existe
+            if (product_id) {
+                await client.query(
+                    'UPDATE products SET stock = stock + $1 WHERE id = $2',
+                    [quantity, product_id]
+                );
+            }
+        }
+
+        // 3. Eliminar la venta
+        // Nota: Dependiendo de tu lógica, podrías querer borrar también la 'transaction' asociada
+        await client.query('DELETE FROM sales WHERE id = $1', [id]);
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: "Venta eliminada y stock actualizado." });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: "Error al eliminar la venta", details: err.message });
+    } finally {
+        client.release();
+    }
+};
