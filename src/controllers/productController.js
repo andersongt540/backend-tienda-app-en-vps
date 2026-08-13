@@ -16,6 +16,7 @@ exports.getProductsByStore = async (req, res) => {
 
 // Registrar un producto
 exports.registerProduct = async (req, res) => {
+    console.log("REGISTRANDO PRODUCTO. BODY RECIBIDO:", JSON.stringify(req.body, null, 2));
     const { storeId, barcode, name, price, costPrice, provider, stock, category } = req.body;
     try {
         await pool.query(
@@ -32,6 +33,7 @@ exports.registerProduct = async (req, res) => {
 // Actualizar un producto
 exports.updateProduct = async (req, res) => {
     const { id } = req.params;
+    console.log(`ACTUALIZANDO PRODUCTO ID ${id}. BODY RECIBIDO:`, JSON.stringify(req.body, null, 2));
     const { barcode, name, price, costPrice, provider, stock, category } = req.body;
     try {
         const result = await pool.query(
