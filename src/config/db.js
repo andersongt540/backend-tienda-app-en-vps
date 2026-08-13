@@ -72,6 +72,8 @@ async function initDB() {
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
                 client_name VARCHAR(255) NOT NULL,
                 amount DECIMAL(10, 2) NOT NULL,
+                description TEXT,
+                phone VARCHAR(50),
                 type VARCHAR(50) DEFAULT 'receivable',
                 is_paid BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

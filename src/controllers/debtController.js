@@ -4,7 +4,7 @@ exports.getDebtsByStore = async (req, res) => {
     const { storeId } = req.params;
     try {
         const result = await pool.query(
-            `SELECT id, client_name as "clientName", amount, description, type, 
+            `SELECT id, client_name as "clientName", amount, description, phone, type,
                     is_paid as "isPaid", created_at as "createdAt" 
              FROM debts WHERE store_id = $1 ORDER BY created_at DESC`,
             [storeId]
@@ -17,7 +17,7 @@ exports.getDebtsByStore = async (req, res) => {
 };
 
 exports.registerDebt = async (req, res) => {
-    const { storeId, store_id, clientName, client_name, amount, description, type } = req.body;
+    const { storeId, store_id, clientName, client_name, amount, description, phone, type } = req.body;
 
     // Compatibilidad con camelCase (App) y snake_case (JSON directo)
     const finalStoreId = storeId || store_id;
@@ -25,8 +25,8 @@ exports.registerDebt = async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO debts (store_id, client_name, amount, description, type) VALUES ($1, $2, $3, $4, $5)',
-            [finalStoreId, finalClientName, amount, description, type]
+            'INSERT INTO debts (store_id, client_name, amount, description, phone, type) VALUES ($1, $2, $3, $4, $5, $6)',
+            [finalStoreId, finalClientName, amount, description, phone, type]
         );
         res.status(201).json({ success: true, message: "Deuda registrada" });
     } catch (err) {

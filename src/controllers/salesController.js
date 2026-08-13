@@ -119,3 +119,21 @@ exports.deleteSale = async (req, res) => {
         client.release();
     }
 };
+
+exports.getUniqueClients = async (req, res) => {
+    const { storeId } = req.params;
+    try {
+        const result = await pool.query(
+            `SELECT DISTINCT ON (LOWER(client_name))
+                client_name as "clientName",
+                phone
+             FROM sales
+             WHERE store_id = $1
+             ORDER BY LOWER(client_name), created_at DESC`,
+            [storeId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Error al obtener clientes", details: err.message });
+    }
+};
