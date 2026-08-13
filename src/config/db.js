@@ -19,7 +19,9 @@ const pool = new Pool(poolConfig);
 
 async function initDB() {
     try {
+        // Ejecutamos las creaciones en orden de dependencia
         await pool.query(`
+            -- 1. Usuarios
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 email VARCHAR(255) UNIQUE NOT NULL,
@@ -28,6 +30,7 @@ async function initDB() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            -- 2. Tiendas (Tenants)
             CREATE TABLE IF NOT EXISTS stores (
                 id SERIAL PRIMARY KEY,
                 user_id INT REFERENCES users(id) ON DELETE CASCADE,
@@ -38,19 +41,18 @@ async function initDB() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE TABLE IF NOT EXISTS products (
+            -- 3. Clientes (Por tienda)
+            CREATE TABLE IF NOT EXISTS clients (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                barcode VARCHAR(255),
                 name VARCHAR(255) NOT NULL,
-                price DECIMAL(10, 2) NOT NULL,
-                cost_price DECIMAL(10, 2) DEFAULT 0.00,
-                provider VARCHAR(255),
-                stock INT NOT NULL DEFAULT 0,
-                category VARCHAR(100),
+                phone VARCHAR(50),
+                email VARCHAR(255),
+                address TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            -- 4. Categorías
             CREATE TABLE IF NOT EXISTS categories (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
@@ -58,40 +60,62 @@ async function initDB() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE TABLE IF NOT EXISTS transactions (
+            -- 5. Productos
+            CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                type VARCHAR(50) NOT NULL, 
-                amount DECIMAL(10, 2) NOT NULL,
-                description TEXT,
+                category_id INT REFERENCES categories(id) ON DELETE SET NULL,
+                barcode VARCHAR(255),
+                name VARCHAR(255) NOT NULL,
+                price DECIMAL(10, 2) NOT NULL,
+                cost_price DECIMAL(10, 2) DEFAULT 0.00,
+                provider VARCHAR(255),
+                stock INT NOT NULL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            -- 6. Ventas (Cabecera)
+            CREATE TABLE IF NOT EXISTS sales (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                client_id INT REFERENCES clients(id) ON DELETE SET NULL,
+                total_price DECIMAL(10, 2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            -- 7. Detalles de la Venta (Productos vendidos)
+            CREATE TABLE IF NOT EXISTS sale_items (
+                id SERIAL PRIMARY KEY,
+                sale_id INT REFERENCES sales(id) ON DELETE CASCADE,
+                product_id INT REFERENCES products(id) ON DELETE SET NULL,
+                quantity INT NOT NULL DEFAULT 1,
+                unit_price DECIMAL(10, 2) NOT NULL,
+                total_price DECIMAL(10, 2) NOT NULL
+            );
+
+            -- 8. Deudas (Cuentas por Cobrar/Pagar)
             CREATE TABLE IF NOT EXISTS debts (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                client_name VARCHAR(255) NOT NULL,
+                client_id INT REFERENCES clients(id) ON DELETE CASCADE,
                 amount DECIMAL(10, 2) NOT NULL,
                 description TEXT,
-                phone VARCHAR(50),
-                type VARCHAR(50) DEFAULT 'receivable',
+                type VARCHAR(50) NOT NULL, -- 'receivable' (por cobrar) o 'payable' (por pagar)
                 is_paid BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE TABLE IF NOT EXISTS sales (
+            -- 9. Transacciones (Log contable general)
+            CREATE TABLE IF NOT EXISTS transactions (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                client_name VARCHAR(255) NOT NULL,
-                address TEXT,
-                phone VARCHAR(50),
-                product_id INT REFERENCES products(id) ON DELETE SET NULL,
-                quantity INT NOT NULL DEFAULT 1,
-                total_price DECIMAL(10, 2) NOT NULL,
+                type VARCHAR(50) NOT NULL, -- 'income', 'expense'
+                amount DECIMAL(10, 2) NOT NULL,
+                description TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
-        console.log("Tablas de la base de datos verificadas/creadas correctamente.");
+        console.log("Nueva estructura de base de datos organizada y creada correctamente.");
     } catch (err) {
         console.error("Error al inicializar las tablas:", err);
     }

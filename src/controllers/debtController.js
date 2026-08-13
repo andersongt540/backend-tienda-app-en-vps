@@ -1,12 +1,34 @@
 const { pool } = require('../config/db');
 
+// Ayudante para manejar clientes en deudas
+const getOrCreateClient = async (client, storeId, name, phone) => {
+    const existing = await client.query(
+        'SELECT id FROM clients WHERE store_id = $1 AND LOWER(name) = LOWER($2)',
+        [storeId, name]
+    );
+
+    if (existing.rows.length > 0) {
+        const clientId = existing.rows[0].id;
+        if (phone) await client.query('UPDATE clients SET phone = $1 WHERE id = $2', [phone, clientId]);
+        return clientId;
+    } else {
+        const newClient = await client.query(
+            'INSERT INTO clients (store_id, name, phone) VALUES ($1, $2, $3) RETURNING id',
+            [storeId, name, phone]
+        );
+        return newClient.rows[0].id;
+    }
+};
+
 exports.getDebtsByStore = async (req, res) => {
     const { storeId } = req.params;
     try {
         const result = await pool.query(
-            `SELECT id, client_name as "clientName", amount, description, phone, type,
-                    is_paid as "isPaid", created_at as "createdAt" 
-             FROM debts WHERE store_id = $1 ORDER BY created_at DESC`,
+            `SELECT d.id, c.name as "clientName", c.phone, d.amount, d.description, d.type,
+                    d.is_paid as "isPaid", d.created_at as "createdAt"
+             FROM debts d
+             JOIN clients c ON d.client_id = c.id
+             WHERE d.store_id = $1 ORDER BY d.created_at DESC`,
             [storeId]
         );
         res.json(result.rows);
@@ -17,21 +39,27 @@ exports.getDebtsByStore = async (req, res) => {
 };
 
 exports.registerDebt = async (req, res) => {
-    const { storeId, store_id, clientName, client_name, amount, description, phone, type } = req.body;
-
-    // Compatibilidad con camelCase (App) y snake_case (JSON directo)
-    const finalStoreId = storeId || store_id;
-    const finalClientName = clientName || client_name;
+    const { storeId, clientName, amount, description, phone, type } = req.body;
+    const dbClient = await pool.connect();
 
     try {
-        await pool.query(
-            'INSERT INTO debts (store_id, client_name, amount, description, phone, type) VALUES ($1, $2, $3, $4, $5, $6)',
-            [finalStoreId, finalClientName, amount, description, phone, type]
+        await dbClient.query('BEGIN');
+
+        const clientId = await getOrCreateClient(dbClient, storeId, clientName, phone);
+
+        await dbClient.query(
+            'INSERT INTO debts (store_id, client_id, amount, description, type) VALUES ($1, $2, $3, $4, $5)',
+            [storeId, clientId, amount, description, type]
         );
-        res.status(201).json({ success: true, message: "Deuda registrada" });
+
+        await dbClient.query('COMMIT');
+        res.status(201).json({ success: true });
     } catch (err) {
-        console.error("ERROR AL REGISTRAR DEUDA:", err);
-        res.status(500).json({ error: "Error al registrar deuda", details: err.message });
+        await dbClient.query('ROLLBACK');
+        console.error("ERROR DEUDA:", err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        dbClient.release();
     }
 };
 
