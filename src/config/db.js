@@ -1,11 +1,10 @@
 const { Pool } = require('pg');
 
-// Si existe DATABASE_URL (en la nube), la usa. Si no, usa la configuración local.
 const poolConfig = process.env.DATABASE_URL
     ? {
         connectionString: process.env.DATABASE_URL,
         ssl: {
-            rejectUnauthorized: false // Requerido para bases de datos en la nube como Render
+            rejectUnauthorized: false
         }
       }
     : {
@@ -17,8 +16,6 @@ const poolConfig = process.env.DATABASE_URL
       };
 
 const pool = new Pool(poolConfig);
-
-// src/config/db.js -> Reemplaza solo la parte del CREATE TABLE en initDB()
 
 async function initDB() {
     try {
@@ -44,7 +41,7 @@ async function initDB() {
             CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                barcode VARCHAR(255), -- Nuevo campo
+                barcode VARCHAR(255),
                 name VARCHAR(255) NOT NULL,
                 price DECIMAL(10, 2) NOT NULL,
                 cost_price DECIMAL(10, 2) DEFAULT 0.00,
@@ -54,15 +51,10 @@ async function initDB() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE TABLE IF NOT EXISTS sales (
+            CREATE TABLE IF NOT EXISTS categories (
                 id SERIAL PRIMARY KEY,
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                client_name VARCHAR(255) NOT NULL,
-                address TEXT,
-                phone VARCHAR(50),
-                product_id INT REFERENCES products(id) ON DELETE SET NULL,
-                quantity INT NOT NULL DEFAULT 1,
-                total_price DECIMAL(10, 2) NOT NULL,
+                name VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -80,15 +72,27 @@ async function initDB() {
                 store_id INT REFERENCES stores(id) ON DELETE CASCADE,
                 client_name VARCHAR(255) NOT NULL,
                 amount DECIMAL(10, 2) NOT NULL,
-                description TEXT, -- Nuevo campo
-                type VARCHAR(50) DEFAULT 'receivable', 
+                type VARCHAR(50) DEFAULT 'receivable',
                 is_paid BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS sales (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                client_name VARCHAR(255) NOT NULL,
+                address TEXT,
+                phone VARCHAR(50),
+                product_id INT REFERENCES products(id) ON DELETE SET NULL,
+                quantity INT NOT NULL DEFAULT 1,
+                total_price DECIMAL(10, 2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         `);
-        console.log("Base de datos actualizada.");
+        console.log("Tablas de la base de datos verificadas/creadas correctamente.");
     } catch (err) {
         console.error("Error al inicializar las tablas:", err);
     }
 }
+
 module.exports = { pool, initDB };
