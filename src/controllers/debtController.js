@@ -17,16 +17,21 @@ exports.getDebtsByStore = async (req, res) => {
 };
 
 exports.registerDebt = async (req, res) => {
-    const { storeId, clientName, amount, description, type } = req.body;
+    const { storeId, store_id, clientName, client_name, amount, description, type } = req.body;
+
+    // Compatibilidad con camelCase (App) y snake_case (JSON directo)
+    const finalStoreId = storeId || store_id;
+    const finalClientName = clientName || client_name;
+
     try {
         await pool.query(
             'INSERT INTO debts (store_id, client_name, amount, description, type) VALUES ($1, $2, $3, $4, $5)',
-            [storeId, clientName, amount, description, type]
+            [finalStoreId, finalClientName, amount, description, type]
         );
         res.status(201).json({ success: true, message: "Deuda registrada" });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Error al registrar deuda" });
+        console.error("ERROR AL REGISTRAR DEUDA:", err);
+        res.status(500).json({ error: "Error al registrar deuda", details: err.message });
     }
 };
 
