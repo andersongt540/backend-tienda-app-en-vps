@@ -6,6 +6,7 @@ const userRoutes = require('./src/routes/userRoutes');
 const salesRoutes = require('./src/routes/salesRoutes');
 const productRoutes = require('./src/routes/productRoutes');     // <-- 1. Importar rutas de productos[cite: 5]
 const categoryRoutes = require('./src/routes/categoryRoutes');   // <-- 2. Importar rutas de categorías[cite: 5]
+const debtRoutes = require('./src/routes/debtRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/products', productRoutes);       // <-- 3. Registrar endpoint de productos[cite: 5]
 app.use('/api/store', categoryRoutes);         // <-- 4. Registrar endpoint de categorías (maneja /api/store/:storeId y /api/store/category)[cite: 5]
+app.use('/api/debts', debtRoutes);
 
 // Ruta raíz de prueba
 app.get('/', (req, res) => {
