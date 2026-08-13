@@ -33,30 +33,38 @@ exports.getDebtsByStore = async (req, res) => {
         );
         res.json(result.rows);
     } catch (err) {
-        console.error(err);
+        console.error("ERROR AL OBTENER DEUDAS:", err);
         res.status(500).json({ error: "Error al obtener deudas" });
     }
 };
 
 exports.registerDebt = async (req, res) => {
-    const { storeId, clientName, amount, description, phone, type } = req.body;
+    const { storeId, store_id, clientName, client_name, amount, description, phone, type } = req.body;
     const dbClient = await pool.connect();
+
+    // Priorizar el ID que no sea nulo
+    const finalStoreId = storeId || store_id;
+    const finalClientName = clientName || client_name;
+
+    if (!finalStoreId) {
+        return res.status(400).json({ error: "storeId es obligatorio" });
+    }
 
     try {
         await dbClient.query('BEGIN');
 
-        const clientId = await getOrCreateClient(dbClient, storeId, clientName, phone);
+        const clientId = await getOrCreateClient(dbClient, finalStoreId, finalClientName, phone);
 
         await dbClient.query(
             'INSERT INTO debts (store_id, client_id, amount, description, type) VALUES ($1, $2, $3, $4, $5)',
-            [storeId, clientId, amount, description, type]
+            [finalStoreId, clientId, amount, description, type]
         );
 
         await dbClient.query('COMMIT');
         res.status(201).json({ success: true });
     } catch (err) {
         await dbClient.query('ROLLBACK');
-        console.error("ERROR DEUDA:", err);
+        console.error("ERROR AL REGISTRAR DEUDA:", err);
         res.status(500).json({ error: err.message });
     } finally {
         dbClient.release();
