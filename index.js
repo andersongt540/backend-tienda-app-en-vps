@@ -7,6 +7,7 @@ const salesRoutes = require('./src/routes/salesRoutes');
 const productRoutes = require('./src/routes/productRoutes');     // <-- 1. Importar rutas de productos[cite: 5]
 const categoryRoutes = require('./src/routes/categoryRoutes');   // <-- 2. Importar rutas de categorías[cite: 5]
 const debtRoutes = require('./src/routes/debtRoutes');
+const statsRoutes = require('./src/routes/statsRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
