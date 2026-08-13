@@ -51,12 +51,14 @@ src/config/db.js
 src/controllers/authController.js
 src/controllers/businessController.js
 src/controllers/categoryController.js
+src/controllers/debtController.js
 src/controllers/productController.js
 src/controllers/salesController.js
 src/controllers/storeController.js
 src/controllers/userController.js
 src/routes/authRoutes.js
 src/routes/categoryRoutes.js
+src/routes/debtRoutes.js
 src/routes/productRoutes.js
 src/routes/salesRoutes.js
 src/routes/storeRoutes.js
@@ -732,35 +734,52 @@ exports.createCategory = async (req, res) => {
 };
 </file>
 
-<file path="src/controllers/productController.js">
+<file path="src/controllers/debtController.js">
 const { pool } = require('../config/db');
 
-// Obtener productos de la tienda
-exports.getProductsByStore = async (req, res) => {
+exports.getDebtsByStore = async (req, res) => {
     const { storeId } = req.params;
     try {
         const result = await pool.query(
-            'SELECT id, store_id as "storeId", name, price, cost_price as "costPrice", provider, stock, category FROM products WHERE store_id = $1 ORDER BY id DESC',
+            'SELECT id, client_name as "clientName", amount, description, type, is_paid as "isPaid", created_at as "createdAt" FROM debts WHERE store_id = $1 ORDER BY created_at DESC',
             [storeId]
         );
         res.json(result.rows);
     } catch (err) {
-        res.status(500).json({ error: 'Error al obtener los productos', details: err.message });
+        res.status(500).json({ error: "Error al obtener deudas" });
     }
 };
 
-// Registrar un producto
-exports.registerProduct = async (req, res) => {
-    const { storeId, name, price, costPrice, provider, stock, category } = req.body;
+exports.registerDebt = async (req, res) => {
+    const { storeId, clientName, amount, description, type } = req.body;
     try {
         await pool.query(
-            `INSERT INTO products (store_id, name, price, cost_price, provider, stock, category) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [storeId, name, price, costPrice || 0, provider || null, stock || 0, category || 'General']
+            'INSERT INTO debts (store_id, client_name, amount, description, type) VALUES ($1, $2, $3, $4, $5)',
+            [storeId, clientName, amount, description, type]
         );
-        res.status(201).json({ success: true, message: 'Producto registrado exitosamente.' });
+        res.status(201).json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: 'Error al registrar el producto', details: err.message });
+        res.status(500).json({ error: "Error al registrar deuda" });
+    }
+};
+
+exports.deleteDebt = async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM debts WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: "Error al eliminar" });
+    }
+};
+
+exports.markAsPaid = async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('UPDATE debts SET is_paid = true WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: "Error al actualizar" });
     }
 };
 </file>
@@ -810,17 +829,6 @@ router.post('/', categoryController.createCategory);
 module.exports = router;
 </file>
 
-<file path="src/routes/productRoutes.js">
-const express = require('express');
-const router = express.Router();
-const productController = require('../controllers/productController');
-
-router.get('/store/:storeId', productController.getProductsByStore);
-router.post('/register', productController.registerProduct);
-
-module.exports = router;
-</file>
-
 <file path="src/routes/storeRoutes.js">
 const express = require('express');
 const router = express.Router();
@@ -861,121 +869,6 @@ module.exports = router;
 }
 </file>
 
-<file path="src/controllers/salesController.js">
-const { pool } = require('../config/db');
-
-exports.registerSale = async (req, res) => {
-    const { storeId, clientName, address, phone, productId, quantity } = req.body;
-    const client = await pool.connect();
-
-    try {
-        await client.query('BEGIN'); // Iniciar transacción
-
-        // 1. Obtener producto y validar stock
-        const productRes = await client.query(
-            'SELECT name, price, stock FROM products WHERE id = $1 AND store_id = $2',
-            [productId, storeId]
-        );
-
-        if (productRes.rows.length === 0) {
-            throw new Error("Producto no encontrado");
-        }
-
-        const product = productRes.rows[0];
-        if (product.stock < quantity) {
-            throw new Error("Stock insuficiente");
-        }
-
-        const totalPrice = product.price * quantity;
-
-        // 2. Descontar stock
-        await client.query(
-            'UPDATE products SET stock = stock - $1 WHERE id = $2',
-            [quantity, productId]
-        );
-
-        // 3. Insertar registro en la nueva tabla 'sales'
-        const saleRes = await client.query(
-            `INSERT INTO sales (store_id, client_name, address, phone, product_id, quantity, total_price)
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-            [storeId, clientName, address, phone, productId, quantity, totalPrice]
-        );
-
-        // 4. Registrar en 'transactions' para que aparezca en el balance
-        await client.query(
-            `INSERT INTO transactions (store_id, type, amount, description)
-             VALUES ($1, 'income', $2, $3)`,
-            [storeId, totalPrice, `Venta: ${product.name} (x${quantity}) a ${clientName}`]
-        );
-
-        await client.query('COMMIT'); // Guardar cambios
-        res.status(201).json({ success: true, sale: saleRes.rows[0] });
-
-    } catch (err) {
-        await client.query('ROLLBACK'); // Deshacer si falla
-        res.status(400).json({ success: false, error: err.message });
-    } finally {
-        client.release();
-    }
-};
-
-// Nueva función para obtener ventas recientes (para tu lista en el Balance)
-exports.getRecentSales = async (req, res) => {
-    const { storeId } = req.query;
-    try {
-        const query = `
-            SELECT s.*, p.name as product_name 
-            FROM sales s
-            JOIN products p ON s.product_id = p.id
-            WHERE s.store_id = $1 
-            ORDER BY s.created_at DESC LIMIT 10;
-        `;
-        const result = await pool.query(query, [storeId]);
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: "Error al obtener ventas" });
-    }
-};
-// src/controllers/salesController.js
-
-exports.deleteSale = async (req, res) => {
-    const { id } = req.params;
-    const client = await pool.connect();
-
-    try {
-        await client.query('BEGIN');
-
-        // 1. Buscar la venta para saber qué producto y cantidad devolver al stock
-        const saleRes = await client.query('SELECT product_id, quantity FROM sales WHERE id = $1', [id]);
-        
-        if (saleRes.rows.length > 0) {
-            const { product_id, quantity } = saleRes.rows[0];
-            
-            // 2. Devolver stock si el producto aún existe
-            if (product_id) {
-                await client.query(
-                    'UPDATE products SET stock = stock + $1 WHERE id = $2',
-                    [quantity, product_id]
-                );
-            }
-        }
-
-        // 3. Eliminar la venta
-        // Nota: Dependiendo de tu lógica, podrías querer borrar también la 'transaction' asociada
-        await client.query('DELETE FROM sales WHERE id = $1', [id]);
-
-        await client.query('COMMIT');
-        res.json({ success: true, message: "Venta eliminada y stock actualizado." });
-
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: "Error al eliminar la venta", details: err.message });
-    } finally {
-        client.release();
-    }
-};
-</file>
-
 <file path="src/routes/authRoutes.js">
 const express = require('express');
 const router = express.Router();
@@ -987,17 +880,114 @@ router.post('/login', login);
 module.exports = router;
 </file>
 
+<file path="src/routes/debtRoutes.js">
+const express = require('express');
+const router = express.Router();
+const debtController = require('../controllers/debtController');
+
+router.get('/store/:storeId', debtController.getDebtsByStore);
+router.post('/register', debtController.registerDebt);
+router.delete('/:id', debtController.deleteDebt);
+router.put('/:id/pay', debtController.markAsPaid);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/productRoutes.js">
+const express = require('express');
+const router = express.Router();
+const productController = require('../controllers/productController');
+
+router.get('/store/:storeId', productController.getProductsByStore);
+router.post('/register', productController.registerProduct);
+router.put('/:id', productController.updateProduct);
+router.delete('/:id', productController.deleteProduct);
+
+module.exports = router;
+</file>
+
 <file path="src/routes/salesRoutes.js">
-// src/routes/salesRoutes.js
 const express = require('express');
 const router = express.Router();
 const salesController = require('../controllers/salesController');
 
 router.post('/register', salesController.registerSale);
-router.get('/recent', salesController.getRecentSales);
-router.delete('/:id', salesController.deleteSale); // <-- Nueva ruta
+router.delete('/:id', salesController.deleteSale);
 
 module.exports = router;
+</file>
+
+<file path="src/controllers/productController.js">
+const { pool } = require('../config/db');
+
+// Obtener productos de la tienda
+exports.getProductsByStore = async (req, res) => {
+    const { storeId } = req.params;
+    try {
+        const result = await pool.query(
+            'SELECT id, store_id as "storeId", barcode, name, price, cost_price as "costPrice", provider, stock, category FROM products WHERE store_id = $1 ORDER BY id DESC',
+            [storeId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener los productos', details: err.message });
+    }
+};
+
+// Registrar un producto
+exports.registerProduct = async (req, res) => {
+    console.log("REGISTRANDO PRODUCTO. BODY RECIBIDO:", JSON.stringify(req.body, null, 2));
+    const { storeId, barcode, name, price, costPrice, provider, stock, category } = req.body;
+    try {
+        await pool.query(
+            `INSERT INTO products (store_id, barcode, name, price, cost_price, provider, stock, category)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [storeId, barcode || null, name, price, costPrice || 0, provider || null, stock || 0, category || 'General']
+        );
+        res.status(201).json({ success: true, message: 'Producto registrado exitosamente.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al registrar el producto', details: err.message });
+    }
+};
+
+// Actualizar un producto
+exports.updateProduct = async (req, res) => {
+    const { id } = req.params;
+    console.log(`ACTUALIZANDO PRODUCTO ID ${id}. BODY RECIBIDO:`, JSON.stringify(req.body, null, 2));
+    const { barcode, name, price, costPrice, provider, stock, category } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE products
+             SET barcode = $1, name = $2, price = $3, cost_price = $4, provider = $5, stock = $6, category = $7
+             WHERE id = $8`,
+            [barcode || null, name, price, costPrice || 0, provider || null, stock || 0, category || 'General', id]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+
+        res.json({ success: true, message: 'Producto actualizado exitosamente.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al actualizar el producto', details: err.message });
+    }
+};
+
+// Eliminar un producto
+exports.deleteProduct = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+
+        res.json({ success: true, message: 'Producto eliminado exitosamente.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al eliminar el producto', details: err.message });
+    }
+};
 </file>
 
 <file path="src/controllers/storeController.js">
@@ -1022,196 +1012,44 @@ const getStoreBalance = async (req, res) => {
     const { userId } = req.params;
     try {
         const storeResult = await pool.query('SELECT * FROM stores WHERE user_id = $1', [userId]);
-        if (storeResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Tienda no encontrada.' });
-        }
+        if (storeResult.rows.length === 0) return res.status(404).json({ error: 'Tienda no encontrada.' });
         const store = storeResult.rows[0];
 
-        // 1. Obtener totales
+        // Totales
         const balanceResult = await pool.query(
             `SELECT 
                 COALESCE(SUM(CASE WHEN type = 'income' OR type = 'sale' THEN amount ELSE 0 END), 0) as total_income,
                 COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expenses
-             FROM transactions WHERE store_id = $1`,
-            [store.id]
+             FROM transactions WHERE store_id = $1`, [store.id]
         );
 
-        // 2. Obtener lista de ventas detallada (para el DTO de la App)
-        // Usamos TO_CHAR para formatear la fecha como YYYY-MM-DD para el filtro de la app
+        // Lista de ventas para la App (con el formato de fecha que espera el DTO)
         const salesResult = await pool.query(
-            `SELECT 
-                s.id, 
-                p.name as "productName", 
-                s.client_name as "clientName", 
-                s.total_price as amount, 
-                TO_CHAR(s.created_at, 'YYYY-MM-DD HH24:MI:SS') as date,
-                s.address,
-                s.phone,
-                s.quantity
+            `SELECT s.id, p.name as "productName", s.client_name as "clientName", 
+                    s.total_price as amount, TO_CHAR(s.created_at, 'YYYY-MM-DD HH24:MI:SS') as date,
+                    s.address, s.phone, s.quantity
              FROM sales s
              LEFT JOIN products p ON s.product_id = p.id
              WHERE s.store_id = $1
-             ORDER BY s.created_at DESC`,
-            [store.id]
+             ORDER BY s.created_at DESC`, [store.id]
         );
 
         const { total_income, total_expenses } = balanceResult.rows[0];
-        const netBalance = parseFloat(total_income) - parseFloat(total_expenses);
-
         res.status(200).json({
             success: true,
             storeName: store.name,
             category: store.category,
-            balance: netBalance,
+            balance: parseFloat(total_income) - parseFloat(total_expenses),
             totalIncome: total_income,
             totalExpenses: total_expenses,
-            sales: salesResult.rows // <-- Lista de ventas añadida
+            sales: salesResult.rows // <-- Enviamos las ventas
         });
     } catch (err) {
-        res.status(500).json({ error: 'Error al obtener el balance', details: err.message });
+        res.status(500).json({ error: err.message });
     }
 };
 
 module.exports = { setupStore, getStoreBalance };
-</file>
-
-<file path="index.js">
-const express = require('express');
-const { initDB } = require('./src/config/db');
-const authRoutes = require('./src/routes/authRoutes');
-const storeRoutes = require('./src/routes/storeRoutes');
-const userRoutes = require('./src/routes/userRoutes');
-const salesRoutes = require('./src/routes/salesRoutes');
-const productRoutes = require('./src/routes/productRoutes');     // <-- 1. Importar rutas de productos[cite: 5]
-const categoryRoutes = require('./src/routes/categoryRoutes');   // <-- 2. Importar rutas de categorías[cite: 5]
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(express.json());
-
-// Inicializar base de datos
-initDB();
-
-// Rutas de la API
-app.use('/api/auth', authRoutes);
-app.use('/api/store', storeRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/sales', salesRoutes);
-app.use('/api/products', productRoutes);       // <-- 3. Registrar endpoint de productos[cite: 5]
-app.use('/api/store', categoryRoutes);         // <-- 4. Registrar endpoint de categorías (maneja /api/store/:storeId y /api/store/category)[cite: 5]
-
-// Ruta raíz de prueba
-app.get('/', (req, res) => {
-    res.json({ mensaje: '¡El backend modular multi-tenant está funcionando correctamente!' });
-});
-
-// Iniciar servidor
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
-});
-</file>
-
-<file path="src/config/db.js">
-const { Pool } = require('pg');
-
-// Si existe DATABASE_URL (en la nube), la usa. Si no, usa la configuración local.
-const poolConfig = process.env.DATABASE_URL
-    ? {
-        connectionString: process.env.DATABASE_URL,
-        ssl: {
-            rejectUnauthorized: false // Requerido para bases de datos en la nube como Render
-        }
-      }
-    : {
-        user: process.env.DB_USER || 'andersongt540',
-        host: process.env.DB_HOST || 'db',
-        database: process.env.DB_DATABASE || 'tienda_app_bd',
-        password: process.env.DB_PASSWORD || 'Eikary24$',
-        port: process.env.DB_PORT || 5432,
-      };
-
-const pool = new Pool(poolConfig);
-
-async function initDB() {
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                is_active BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS stores (
-                id SERIAL PRIMARY KEY,
-                user_id INT REFERENCES users(id) ON DELETE CASCADE,
-                name VARCHAR(255) NOT NULL,
-                category VARCHAR(255),
-                address TEXT,
-                phone VARCHAR(50),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-           CREATE TABLE IF NOT EXISTS products (
-                id SERIAL PRIMARY KEY,
-                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                name VARCHAR(255) NOT NULL,
-                price DECIMAL(10, 2) NOT NULL,
-                cost_price DECIMAL(10, 2) DEFAULT 0.00,
-                provider VARCHAR(255),
-                stock INT NOT NULL DEFAULT 0,
-                category VARCHAR(100),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS categories (
-                id SERIAL PRIMARY KEY,
-                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                name VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            
-            CREATE TABLE IF NOT EXISTS transactions (
-                id SERIAL PRIMARY KEY,
-                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                type VARCHAR(50) NOT NULL, 
-                amount DECIMAL(10, 2) NOT NULL,
-                description TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS debts (
-                id SERIAL PRIMARY KEY,
-                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                client_name VARCHAR(255) NOT NULL,
-                amount DECIMAL(10, 2) NOT NULL,
-                type VARCHAR(50) DEFAULT 'receivable', 
-                is_paid BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            -- NUEVA TABLA: Almacena las ventas conectadas con el inventario y los datos del cliente
-            CREATE TABLE IF NOT EXISTS sales (
-                id SERIAL PRIMARY KEY,
-                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
-                client_name VARCHAR(255) NOT NULL,
-                address TEXT,
-                phone VARCHAR(50),
-                product_id INT REFERENCES products(id) ON DELETE SET NULL,
-                quantity INT NOT NULL DEFAULT 1,
-                total_price DECIMAL(10, 2) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-        console.log("Tablas multi-tenant de la base de datos verificadas/creadas correctamente.");
-    } catch (err) {
-        console.error("Error al inicializar las tablas:", err);
-    }
-}
-
-module.exports = { pool, initDB };
 </file>
 
 <file path="src/controllers/authController.js">
@@ -1288,6 +1126,270 @@ const login = async (req, res) => {
 };
 
 module.exports = { register, login };
+</file>
+
+<file path="src/controllers/salesController.js">
+const { pool } = require('../config/db');
+
+exports.registerSale = async (req, res) => {
+    const { storeId, clientName, address, phone, items } = req.body;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN'); // Iniciar transacción
+
+        let totalSalePrice = 0;
+        const productsInfo = [];
+
+        // 1. Validar todos los productos y el stock antes de realizar cualquier cambio
+        for (const item of items) {
+            const { productId, quantity } = item;
+
+            const productRes = await client.query(
+                'SELECT name, price, stock FROM products WHERE id = $1 AND store_id = $2',
+                [productId, storeId]
+            );
+
+            if (productRes.rows.length === 0) {
+                throw new Error(`Producto con ID ${productId} no encontrado`);
+            }
+
+            const product = productRes.rows[0];
+            if (product.stock < quantity) {
+                throw new Error(`Stock insuficiente para ${product.name}. Disponibles: ${product.stock}`);
+            }
+
+            const itemTotalPrice = parseFloat(product.price) * quantity;
+            totalSalePrice += itemTotalPrice;
+
+            productsInfo.push({
+                id: productId,
+                name: product.name,
+                price: product.price,
+                quantity: quantity,
+                totalPrice: itemTotalPrice
+            });
+        }
+
+        const salesRecords = [];
+
+        // 2. Procesar cada producto (Descontar stock e insertar en la tabla 'sales')
+        for (const prod of productsInfo) {
+            // Descontar stock
+            await client.query(
+                'UPDATE products SET stock = stock - $1 WHERE id = $2',
+                [prod.quantity, prod.id]
+            );
+
+            // Insertar registro en 'sales'
+            const saleRes = await client.query(
+                `INSERT INTO sales (store_id, client_name, address, phone, product_id, quantity, total_price)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+                [storeId, clientName, address, phone, prod.id, prod.quantity, prod.totalPrice]
+            );
+            salesRecords.push(saleRes.rows[0]);
+        }
+
+        // 3. Registrar una sola transacción para el balance general
+        const summaryDescription = `Venta a ${clientName}: ` + productsInfo.map(p => `${p.name} (x${p.quantity})`).join(', ');
+
+        await client.query(
+            `INSERT INTO transactions (store_id, type, amount, description)
+             VALUES ($1, 'income', $2, $3)`,
+            [storeId, totalSalePrice, summaryDescription]
+        );
+
+        await client.query('COMMIT'); // Guardar cambios definitivos
+        res.status(201).json({
+            success: true,
+            message: "Venta registrada con éxito",
+            count: salesRecords.length,
+            total: totalSalePrice
+        });
+
+    } catch (err) {
+        await client.query('ROLLBACK'); // Deshacer todo si algo falla
+        console.error("ERROR EN REGISTER SALE:", err.message);
+        res.status(400).json({ success: false, error: err.message });
+    } finally {
+        client.release();
+    }
+};
+
+exports.deleteSale = async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // 1. Buscar la venta para devolver stock
+        const saleRes = await client.query('SELECT product_id, quantity FROM sales WHERE id = $1', [id]);
+
+        if (saleRes.rows.length > 0) {
+            const { product_id, quantity } = saleRes.rows[0];
+
+            if (product_id) {
+                await client.query(
+                    'UPDATE products SET stock = stock + $1 WHERE id = $2',
+                    [quantity, product_id]
+                );
+            }
+        }
+
+        // 2. Eliminar la venta
+        await client.query('DELETE FROM sales WHERE id = $1', [id]);
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: "Venta eliminada y stock actualizado." });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: "Error al eliminar la venta", details: err.message });
+    } finally {
+        client.release();
+    }
+};
+</file>
+
+<file path="index.js">
+const express = require('express');
+const { initDB } = require('./src/config/db');
+const authRoutes = require('./src/routes/authRoutes');
+const storeRoutes = require('./src/routes/storeRoutes');
+const userRoutes = require('./src/routes/userRoutes');
+const salesRoutes = require('./src/routes/salesRoutes');
+const productRoutes = require('./src/routes/productRoutes');     // <-- 1. Importar rutas de productos[cite: 5]
+const categoryRoutes = require('./src/routes/categoryRoutes');   // <-- 2. Importar rutas de categorías[cite: 5]
+const debtRoutes = require('./src/routes/debtRoutes');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+
+// Inicializar base de datos
+initDB();
+
+// Rutas de la API
+app.use('/api/auth', authRoutes);
+app.use('/api/store', storeRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/products', productRoutes);       // <-- 3. Registrar endpoint de productos[cite: 5]
+app.use('/api/store', categoryRoutes);         // <-- 4. Registrar endpoint de categorías (maneja /api/store/:storeId y /api/store/category)[cite: 5]
+app.use('/api/debts', debtRoutes);
+
+// Ruta raíz de prueba
+app.get('/', (req, res) => {
+    res.json({ mensaje: '¡El backend modular multi-tenant está funcionando correctamente!' });
+});
+
+// Iniciar servidor
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
+</file>
+
+<file path="src/config/db.js">
+const { Pool } = require('pg');
+
+const poolConfig = process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        }
+      }
+    : {
+        user: process.env.DB_USER || 'andersongt540',
+        host: process.env.DB_HOST || 'db',
+        database: process.env.DB_DATABASE || 'tienda_app_bd',
+        password: process.env.DB_PASSWORD || 'Eikary24$',
+        port: process.env.DB_PORT || 5432,
+      };
+
+const pool = new Pool(poolConfig);
+
+async function initDB() {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                is_active BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS stores (
+                id SERIAL PRIMARY KEY,
+                user_id INT REFERENCES users(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                category VARCHAR(255),
+                address TEXT,
+                phone VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS products (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                barcode VARCHAR(255),
+                name VARCHAR(255) NOT NULL,
+                price DECIMAL(10, 2) NOT NULL,
+                cost_price DECIMAL(10, 2) DEFAULT 0.00,
+                provider VARCHAR(255),
+                stock INT NOT NULL DEFAULT 0,
+                category VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS categories (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS transactions (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                type VARCHAR(50) NOT NULL, 
+                amount DECIMAL(10, 2) NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS debts (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                client_name VARCHAR(255) NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                type VARCHAR(50) DEFAULT 'receivable',
+                is_paid BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS sales (
+                id SERIAL PRIMARY KEY,
+                store_id INT REFERENCES stores(id) ON DELETE CASCADE,
+                client_name VARCHAR(255) NOT NULL,
+                address TEXT,
+                phone VARCHAR(50),
+                product_id INT REFERENCES products(id) ON DELETE SET NULL,
+                quantity INT NOT NULL DEFAULT 1,
+                total_price DECIMAL(10, 2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log("Tablas de la base de datos verificadas/creadas correctamente.");
+    } catch (err) {
+        console.error("Error al inicializar las tablas:", err);
+    }
+}
+
+module.exports = { pool, initDB };
 </file>
 
 </files>

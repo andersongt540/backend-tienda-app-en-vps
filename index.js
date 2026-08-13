@@ -24,6 +24,7 @@ app.use('/api/sales', salesRoutes);
 app.use('/api/products', productRoutes);       // <-- 3. Registrar endpoint de productos[cite: 5]
 app.use('/api/store', categoryRoutes);         // <-- 4. Registrar endpoint de categorías (maneja /api/store/:storeId y /api/store/category)[cite: 5]
 app.use('/api/debts', debtRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Ruta raíz de prueba
 app.get('/', (req, res) => {
